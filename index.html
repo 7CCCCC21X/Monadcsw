@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monad 测试水批量查询</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+        .container {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        textarea {
+            width: 80%;
+            height: 200px;
+            padding: 8px;
+            margin-right: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            resize: none;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .result-row {
+            background-color: #fff;
+        }
+        .error {
+            color: red;
+        }
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .header-info a {
+            color: #1DA1F2;
+            text-decoration: none;
+        }
+        .header-info a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-info">
+        <div>作者推特: <a href="https://x.com/0xXIAOc" target="_blank">@0xXIAOc</a></div>
+    </div>
+
+    <h1>Monad 测试水批量查询</h1>
+
+    <div class="container">
+        <label for="addresses">输入以太坊地址 (每个地址一行):</label><br><br>
+        <textarea id="addresses" placeholder="每个地址一行，输入多个地址进行查询..."></textarea><br><br>
+        <button onclick="checkBalances()">查询余额</button>
+    </div>
+
+    <h2>查询结果</h2>
+    <table id="resultTable">
+        <thead>
+            <tr>
+                <th>地址</th>
+                <th>代币名称</th>
+                <th>代币符号</th>
+                <th>余额</th>
+                <th>状态</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 查询结果会在这里显示 -->
+        </tbody>
+    </table>
+
+    <div class="summary">
+        <p>查询的钱包数量：<span id="totalWallets">0</span></p>
+        <p>有资格的钱包数量：<span id="qualifiedWallets">0</span></p>
+        <p>有资格的钱包代币总和：<span id="totalQualifiedBalance">0</span></p>
+    </div>
+
+    <script>
+        // Function to fetch token portfolio for a given address
+        async function getTokenPortfolio(address) {
+            const url = `https://monad-api.blockvision.org/testnet/api/account/tokenPortfolio?address=${address}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.result.data;  // Extracting the 'data' which contains token portfolio
+        }
+
+        // Function to check balances for multiple addresses
+        async function checkBalances() {
+            const addressesInput = document.getElementById("addresses").value.trim();
+            const addresses = addressesInput.split("\n").map(addr => addr.trim()).filter(addr => addr !== "");
+
+            // Clear previous results
+            const resultTableBody = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
+            resultTableBody.innerHTML = '';
+
+            let totalWallets = 0;
+            let qualifiedWallets = 0;
+            let totalQualifiedBalance = 0;
+
+            // Loop through each address and get its token portfolio
+            for (let address of addresses) {
+                totalWallets++; // Count the total wallets being processed
+                try {
+                    const portfolio = await getTokenPortfolio(address);
+
+                    // Check if there is a token portfolio for this address
+                    if (portfolio && portfolio.length > 0) {
+                        qualifiedWallets++; // Count the wallets with tokens
+                        portfolio.forEach(token => {
+                            const row = resultTableBody.insertRow();
+                            row.classList.add("result-row");
+
+                            const addressCell = row.insertCell(0);
+                            const tokenNameCell = row.insertCell(1);
+                            const tokenSymbolCell = row.insertCell(2);
+                            const balanceCell = row.insertCell(3);
+                            const statusCell = row.insertCell(4);
+
+                            addressCell.textContent = address;
+                            tokenNameCell.textContent = token.name || 'N/A';
+                            tokenSymbolCell.textContent = token.symbol || 'N/A';
+                            balanceCell.textContent = token.balance || 'N/A';
+                            statusCell.textContent = '成功';
+
+                            // Sum up the total balance of qualified wallets
+                            totalQualifiedBalance += parseFloat(token.balance || 0);
+                        });
+                    } else {
+                        const row = resultTableBody.insertRow();
+                        row.classList.add("result-row");
+
+                        const addressCell = row.insertCell(0);
+                        const tokenNameCell = row.insertCell(1);
+                        const tokenSymbolCell = row.insertCell(2);
+                        const balanceCell = row.insertCell(3);
+                        const statusCell = row.insertCell(4);
+
+                        addressCell.textContent = address;
+                        tokenNameCell.textContent = '无代币';
+                        tokenSymbolCell.textContent = 'N/A';
+                        balanceCell.textContent = '0';
+                        statusCell.textContent = '无代币';
+                        statusCell.classList.add('error');
+                    }
+                } catch (error) {
+                    console.error(`查询失败：${address}`, error);
+                    const row = resultTableBody.insertRow();
+                    row.classList.add("result-row");
+
+                    const addressCell = row.insertCell(0);
+                    const tokenNameCell = row.insertCell(1);
+                    const tokenSymbolCell = row.insertCell(2);
+                    const balanceCell = row.insertCell(3);
+                    const statusCell = row.insertCell(4);
+
+                    addressCell.textContent = address;
+                    tokenNameCell.textContent = 'N/A';
+                    tokenSymbolCell.textContent = 'N/A';
+                    balanceCell.textContent = 'N/A';
+                    statusCell.textContent = '查询失败';
+                    statusCell.classList.add('error');
+                }
+            }
+
+            // Update summary information
+            document.getElementById("totalWallets").textContent = totalWallets;
+            document.getElementById("qualifiedWallets").textContent = qualifiedWallets;
+            document.getElementById("totalQualifiedBalance").textContent = totalQualifiedBalance.toFixed(4);  // Displaying balance rounded to 4 decimals
+        }
+    </script>
+
+</body>
+</html>
