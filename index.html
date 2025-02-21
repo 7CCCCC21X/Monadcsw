@@ -142,23 +142,26 @@
                     if (portfolio && portfolio.length > 0) {
                         qualifiedWallets++; // Count the wallets with tokens
                         portfolio.forEach(token => {
-                            const row = resultTableBody.insertRow();
-                            row.classList.add("result-row");
+                            // Only show tokens with the specific contract address "0x0000000000000000000000000000000000000000"
+                            if (token.contractAddress === '0x0000000000000000000000000000000000000000') {
+                                const row = resultTableBody.insertRow();
+                                row.classList.add("result-row");
 
-                            const addressCell = row.insertCell(0);
-                            const tokenNameCell = row.insertCell(1);
-                            const tokenSymbolCell = row.insertCell(2);
-                            const balanceCell = row.insertCell(3);
-                            const statusCell = row.insertCell(4);
+                                const addressCell = row.insertCell(0);
+                                const tokenNameCell = row.insertCell(1);
+                                const tokenSymbolCell = row.insertCell(2);
+                                const balanceCell = row.insertCell(3);
+                                const statusCell = row.insertCell(4);
 
-                            addressCell.textContent = address;
-                            tokenNameCell.textContent = token.name || 'N/A';
-                            tokenSymbolCell.textContent = token.symbol || 'N/A';
-                            balanceCell.textContent = token.balance || 'N/A';
-                            statusCell.textContent = '成功';
+                                addressCell.textContent = address;
+                                tokenNameCell.textContent = token.name || 'N/A';
+                                tokenSymbolCell.textContent = token.symbol || 'N/A';
+                                balanceCell.textContent = token.balance || 'N/A';
+                                statusCell.textContent = '成功';
 
-                            // Sum up the total balance of qualified wallets
-                            totalQualifiedBalance += parseFloat(token.balance || 0);
+                                // Sum up the total balance of qualified wallets
+                                totalQualifiedBalance += parseFloat(token.balance || 0);
+                            }
                         });
                     } else {
                         const row = resultTableBody.insertRow();
@@ -171,10 +174,10 @@
                         const statusCell = row.insertCell(4);
 
                         addressCell.textContent = address;
-                        tokenNameCell.textContent = '无代币';
+                        tokenNameCell.textContent = '无指定代币';
                         tokenSymbolCell.textContent = 'N/A';
                         balanceCell.textContent = '0';
-                        statusCell.textContent = '无代币';
+                        statusCell.textContent = '无指定代币';
                         statusCell.classList.add('error');
                     }
                 } catch (error) {
