@@ -72,6 +72,22 @@
         .header-info a:hover {
             text-decoration: underline;
         }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .footer a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .footer a:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -108,6 +124,10 @@
         <p>查询的钱包数量：<span id="totalWallets">0</span></p>
         <p>有资格的钱包数量：<span id="qualifiedWallets">0</span></p>
         <p>有资格的钱包代币总和：<span id="totalQualifiedBalance">0</span></p>
+    </div>
+
+    <div class="footer">
+        <a href="https://monadshuju.vercel.app/" target="_blank">Monad 数据批量查询入口</a>
     </div>
 
     <script>
