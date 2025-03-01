@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -83,7 +83,7 @@
     <h1>Monad 测试水批量查询</h1>
 
     <div class="container">
-        <label for="addresses">输入以太坊地址 (每个地址一行):</label><br><br>
+        <label for="addresses">输入钱包地址 (每个地址一行):</label><br><br>
         <textarea id="addresses" placeholder="每个地址一行，输入多个地址进行查询..."></textarea><br><br>
         <button onclick="checkBalances()">查询余额</button>
     </div>
@@ -111,20 +111,40 @@
     </div>
 
     <script>
-        // Function to fetch token portfolio for a given address
-        async function getTokenPortfolio(address) {
-            const url = `https://monad-api.blockvision.org/testnet/api/account/tokenPortfolio?address=${address}`;
-            const response = await fetch(url);
-            const data = await response.json();
-            return data.result.data;  // Extracting the 'data' which contains token portfolio
+        // Monad 测试网 RPC 端点
+        const rpcUrl = "https://testnet-rpc.monad.xyz/";
+
+        // 获取钱包余额（Monad 原生代币 Mon）
+        async function getWalletBalance(address) {
+            const data = {
+                "jsonrpc": "2.0",
+                "method": "eth_getBalance",
+                "params": [address, "latest"],
+                "id": 1
+            };
+
+            try {
+                const response = await fetch(rpcUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                const balanceWei = BigInt(result.result || "0x0"); // 解析为 BigInt
+                return Number(balanceWei) / 1e18; // 转换成 Mon 余额
+            } catch (error) {
+                console.error(`查询失败：${address}`, error);
+                return "查询失败";
+            }
         }
 
-        // Function to check balances for multiple addresses
+        // 处理批量查询
         async function checkBalances() {
             const addressesInput = document.getElementById("addresses").value.trim();
             const addresses = addressesInput.split("\n").map(addr => addr.trim()).filter(addr => addr !== "");
 
-            // Clear previous results
+            // 清空旧数据
             const resultTableBody = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
             resultTableBody.innerHTML = '';
 
@@ -132,78 +152,38 @@
             let qualifiedWallets = 0;
             let totalQualifiedBalance = 0;
 
-            // Loop through each address and get its token portfolio
             for (let address of addresses) {
-                totalWallets++; // Count the total wallets being processed
-                try {
-                    const portfolio = await getTokenPortfolio(address);
+                totalWallets++; // 统计查询的钱包总数
+                const balance = await getWalletBalance(address);
 
-                    // Check if there is a token portfolio for this address
-                    if (portfolio && portfolio.length > 0) {
-                        qualifiedWallets++; // Count the wallets with tokens
-                        portfolio.forEach(token => {
-                            // Only show tokens with the specific contract address "0x0000000000000000000000000000000000000000"
-                            if (token.contractAddress === '0x0000000000000000000000000000000000000000') {
-                                const row = resultTableBody.insertRow();
-                                row.classList.add("result-row");
+                // 创建表格行
+                const row = resultTableBody.insertRow();
+                row.classList.add("result-row");
 
-                                const addressCell = row.insertCell(0);
-                                const tokenNameCell = row.insertCell(1);
-                                const tokenSymbolCell = row.insertCell(2);
-                                const balanceCell = row.insertCell(3);
-                                const statusCell = row.insertCell(4);
+                const addressCell = row.insertCell(0);
+                const tokenNameCell = row.insertCell(1);
+                const tokenSymbolCell = row.insertCell(2);
+                const balanceCell = row.insertCell(3);
+                const statusCell = row.insertCell(4);
 
-                                addressCell.textContent = address;
-                                tokenNameCell.textContent = token.name || 'N/A';
-                                tokenSymbolCell.textContent = token.symbol || 'N/A';
-                                balanceCell.textContent = token.balance || 'N/A';
-                                statusCell.textContent = '成功';
+                addressCell.textContent = address;
+                tokenNameCell.textContent = "Monad";
+                tokenSymbolCell.textContent = "Mon";
+                balanceCell.textContent = balance === "查询失败" ? "N/A" : balance.toFixed(6);
+                statusCell.textContent = balance === "查询失败" ? "查询失败" : "成功";
+                if (balance === "查询失败") statusCell.classList.add('error');
 
-                                // Sum up the total balance of qualified wallets
-                                totalQualifiedBalance += parseFloat(token.balance || 0);
-                            }
-                        });
-                    } else {
-                        const row = resultTableBody.insertRow();
-                        row.classList.add("result-row");
-
-                        const addressCell = row.insertCell(0);
-                        const tokenNameCell = row.insertCell(1);
-                        const tokenSymbolCell = row.insertCell(2);
-                        const balanceCell = row.insertCell(3);
-                        const statusCell = row.insertCell(4);
-
-                        addressCell.textContent = address;
-                        tokenNameCell.textContent = '无指定代币';
-                        tokenSymbolCell.textContent = 'N/A';
-                        balanceCell.textContent = '0';
-                        statusCell.textContent = '无指定代币';
-                        statusCell.classList.add('error');
-                    }
-                } catch (error) {
-                    console.error(`查询失败：${address}`, error);
-                    const row = resultTableBody.insertRow();
-                    row.classList.add("result-row");
-
-                    const addressCell = row.insertCell(0);
-                    const tokenNameCell = row.insertCell(1);
-                    const tokenSymbolCell = row.insertCell(2);
-                    const balanceCell = row.insertCell(3);
-                    const statusCell = row.insertCell(4);
-
-                    addressCell.textContent = address;
-                    tokenNameCell.textContent = 'N/A';
-                    tokenSymbolCell.textContent = 'N/A';
-                    balanceCell.textContent = 'N/A';
-                    statusCell.textContent = '查询失败';
-                    statusCell.classList.add('error');
+                // 统计有 Mon 余额的钱包
+                if (typeof balance === "number" && balance > 0) {
+                    qualifiedWallets++;
+                    totalQualifiedBalance += balance;
                 }
             }
 
-            // Update summary information
+            // 更新统计信息
             document.getElementById("totalWallets").textContent = totalWallets;
             document.getElementById("qualifiedWallets").textContent = qualifiedWallets;
-            document.getElementById("totalQualifiedBalance").textContent = totalQualifiedBalance.toFixed(4);  // Displaying balance rounded to 4 decimals
+            document.getElementById("totalQualifiedBalance").textContent = totalQualifiedBalance.toFixed(4);
         }
     </script>
 
