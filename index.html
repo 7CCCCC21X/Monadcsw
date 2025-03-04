@@ -19,14 +19,16 @@
             margin-bottom: 20px;
             text-align: center;
         }
-        textarea {
+        textarea, input {
             width: 80%;
-            height: 200px;
             padding: 8px;
-            margin-right: 10px;
+            margin: 5px 0;
             border-radius: 4px;
             border: 1px solid #ddd;
             resize: none;
+        }
+        textarea {
+            height: 150px;
         }
         button {
             padding: 10px 20px;
@@ -72,6 +74,19 @@
         .header-info a:hover {
             text-decoration: underline;
         }
+        .api-register {
+            color: #007bff;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .api-register a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .api-register a:hover {
+            text-decoration: underline;
+        }
         .footer {
             margin-top: 20px;
             text-align: center;
@@ -99,8 +114,15 @@
     <h1>Monad 测试水批量查询</h1>
 
     <div class="container">
+        <p class="api-register">
+            还没有 API Key？ <a href="https://dashboard.blockvision.org/welcome?redirect=%2Freference%2Fretrieve-monad-account-tokens" target="_blank">点击注册 Monad API</a>
+        </p>
+        <label for="apiKey">输入您的 API Key:</label><br>
+        <input type="text" id="apiKey" placeholder="在这里输入您的 API Key"><br><br>
+
         <label for="addresses">输入钱包地址 (每个地址一行):</label><br><br>
         <textarea id="addresses" placeholder="每个地址一行，输入多个地址进行查询..."></textarea><br><br>
+        
         <button onclick="checkBalances()">查询余额</button>
     </div>
 
@@ -135,7 +157,7 @@
         const rpcUrl = "https://testnet-rpc.monad.xyz/";
 
         // 获取钱包余额（Monad 原生代币 Mon）
-        async function getWalletBalance(address) {
+        async function getWalletBalance(address, apiKey) {
             const data = {
                 "jsonrpc": "2.0",
                 "method": "eth_getBalance",
@@ -146,7 +168,10 @@
             try {
                 const response = await fetch(rpcUrl, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${apiKey}`  // 用户输入的 API Key
+                    },
                     body: JSON.stringify(data)
                 });
 
@@ -161,8 +186,19 @@
 
         // 处理批量查询
         async function checkBalances() {
+            const apiKey = document.getElementById("apiKey").value.trim();
+            if (!apiKey) {
+                alert("请先输入 API Key");
+                return;
+            }
+
             const addressesInput = document.getElementById("addresses").value.trim();
             const addresses = addressesInput.split("\n").map(addr => addr.trim()).filter(addr => addr !== "");
+
+            if (addresses.length === 0) {
+                alert("请输入至少一个钱包地址");
+                return;
+            }
 
             // 清空旧数据
             const resultTableBody = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
@@ -174,7 +210,7 @@
 
             for (let address of addresses) {
                 totalWallets++; // 统计查询的钱包总数
-                const balance = await getWalletBalance(address);
+                const balance = await getWalletBalance(address, apiKey);
 
                 // 创建表格行
                 const row = resultTableBody.insertRow();
